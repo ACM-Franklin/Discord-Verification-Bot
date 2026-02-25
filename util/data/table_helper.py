@@ -14,6 +14,7 @@ class TableHelper:
         if val is not None:
             rep = self.table.delete().where(self.table.columns.name == name)
             self.conn.execute(rep)
+            self.conn.commit()
             return True
         else:
             return False
@@ -21,6 +22,7 @@ class TableHelper:
     def delete_all(self):
         rep = self.table.delete()
         self.conn.execute(rep)
+        self.conn.commit()
 
     def fetch_all(self):
         sel = self.table.select()
@@ -35,12 +37,14 @@ class TableHelper:
 
     def insert_(self, items: list):
         self.conn.execute(self.table.insert(), items)
+        self.conn.commit()
 
     def set(self, name: str, value):
         val = self.fetch_by_name(name)
         if val is not None:
             rep = self.table.update().where(self.table.columns.name == name).values(value=value)
             self.conn.execute(rep)
+            self.conn.commit()
             return value
         else:
             self.insert_([{'name': name, 'value': value}])
@@ -52,6 +56,7 @@ class TableHelper:
             new_val = not val
             rep = self.table.update().where(self.table.columns.name == name).values(value=new_val)
             self.conn.execute(rep)
+            self.conn.commit()
             return new_val
         else:
             self.insert_([{'name': name, 'value': default_val}])
