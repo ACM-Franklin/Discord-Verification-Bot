@@ -1,7 +1,6 @@
 # VerificationBot
 
 ![License](https://img.shields.io/github/license/jensengillett/verificationbot?color=6cc644&label=License&style=flat-square)
-![Repo Stars](https://img.shields.io/github/stars/jensengillett/verificationbot?color=6e5494&label=Stars&logo=github&logoColor=white&style=flat-square)
 
 > A Discord verification bot designed for post-secondary institutions. Confirms membership by sending a one-time token to an institutional email address. Fully modular, Docker-native, and configurable via environment variables.
 
