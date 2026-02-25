@@ -1,66 +1,71 @@
 import copy
-# from re import VERBOSE
+import logging
 
-# import discord
-# from discord.errors import InvalidArgument
 from discord.ext import commands
 from discord.ext.commands import errors as cmderr
 
 from util.email import is_valid_email
 
+log = logging.getLogger(__name__)
+
 
 class Errors(commands.Cog):
-	def __init__(self, bot):
-		self.bot = bot
+    """Global command-error handler with smart fallback for mistyped verification commands."""
 
-	# Exception handling.
-	@commands.Cog.listener("on_command_error")
-	async def on_command_error(self, ctx, exception):
-		if isinstance(exception, cmderr.PrivateMessageOnly):
-			await ctx.send("Please DM the bot to use this command!")
-		elif isinstance(exception, cmderr.NoPrivateMessage):
-			await ctx.channel.send("This command must be used in a Discord server!")
-		elif isinstance(exception, cmderr.MissingRole):
-			await ctx.channel.send("Missing required role to use this command!")
-		elif isinstance(exception, cmderr.MissingRequiredArgument):
-			await ctx.channel.send("Missing required arguments!")
-		elif isinstance(exception, cmderr.UserInputError):
-			await ctx.channel.send("Missing or invalid argument!")
-		elif isinstance(exception, cmderr.CommandNotFound):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
 
-			message_content = ctx.message.content.replace(ctx.prefix, "")
+    @commands.Cog.listener("on_command_error")
+    async def on_command_error(self, ctx: commands.Context, exception: commands.CommandError) -> None:
+        if isinstance(exception, cmderr.PrivateMessageOnly):
+            await ctx.send("Please DM the bot to use this command!")
+        elif isinstance(exception, cmderr.NoPrivateMessage):
+            await ctx.send("This command must be used in a Discord server!")
+        elif isinstance(exception, cmderr.MissingRole):
+            await ctx.send("Missing required role to use this command!")
+        elif isinstance(exception, cmderr.MissingPermissions):
+            await ctx.send("You do not have permission to use this command!")
+        elif isinstance(exception, cmderr.MissingRequiredArgument):
+            await ctx.send("Missing required arguments!")
+        elif isinstance(exception, cmderr.UserInputError):
+            await ctx.send("Missing or invalid argument!")
+        elif isinstance(exception, cmderr.CommandOnCooldown):
+            await ctx.send(f"This command is on cooldown. Try again in {exception.retry_after:.1f}s.")
+        elif isinstance(exception, cmderr.CommandNotFound):
+            await self._try_fallback(ctx)
+        else:
+            log.exception("Unhandled command error in '%s'", ctx.command, exc_info=exception)
 
-			def clean_aliases(message_content: str, aliases: list):
-				for a in aliases:
-					a = str(a).lower()
-					if message_content.startswith(a):
-						message_content = message_content.replace(f"{a} ", "", 1)
-						message_content = message_content.replace(a, "", 1)
-						break
-				return message_content
+    async def _try_fallback(self, ctx: commands.Context) -> None:
+        """Attempt to interpret an unknown command as a bare email or token."""
+        content = ctx.message.content.replace(ctx.prefix, "", 1)
 
-			async def invoke_cmd(ctx, cmd, message_content):
-				msg = copy.copy(ctx.message)
-				msg.content = message_content
-				ctx = await self.bot.get_context(msg)
-				await ctx.invoke(cmd, message_content)
+        def clean_aliases(text: str, aliases: list[str]) -> str:
+            for alias in aliases:
+                alias = alias.lower()
+                if text.startswith(alias):
+                    text = text.replace(f"{alias} ", "", 1).replace(alias, "", 1)
+                    break
+            return text.strip()
 
-			# If the attempted command is a valid email, run the email command
-			email_cmd = self.bot.get_command("email")
-			message_content = clean_aliases(message_content, email_cmd.aliases)
+        async def invoke_cmd(cmd, cleaned_content: str) -> None:
+            msg = copy.copy(ctx.message)
+            msg.content = cleaned_content
+            new_ctx = await self.bot.get_context(msg)
+            await new_ctx.invoke(cmd, cleaned_content)
 
-			if is_valid_email(message_content):
-				return await invoke_cmd(ctx, email_cmd, message_content)
+        email_cmd = self.bot.get_command("email")
+        if email_cmd is not None:
+            cleaned = clean_aliases(content, email_cmd.aliases)
+            if is_valid_email(cleaned):
+                return await invoke_cmd(email_cmd, cleaned)
 
-			verify_cmd = self.bot.get_command("verify")
-			message_content = clean_aliases(message_content, verify_cmd.aliases)
-
-			if len(message_content) == 4 and message_content.isnumeric():
-				return await invoke_cmd(ctx, verify_cmd, message_content)
-
-		else:
-			print(exception)
+        verify_cmd = self.bot.get_command("verify")
+        if verify_cmd is not None:
+            cleaned = clean_aliases(content, verify_cmd.aliases)
+            if len(cleaned) == 4 and cleaned.isnumeric():
+                return await invoke_cmd(verify_cmd, cleaned)
 
 
-def setup(bot):
-	bot.add_cog(Errors(bot))
+async def setup(bot: commands.Bot) -> None:
+    await bot.add_cog(Errors(bot))

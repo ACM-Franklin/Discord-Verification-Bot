@@ -1,11 +1,11 @@
-FROM python:3
+FROM python:3.12-slim
 WORKDIR /app
 
-RUN pip install discord.py
-RUN pip install varint
-RUN pip install sqlalchemy
+# Install dependencies first (layer caching)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# A bunch of environment variables, will be used in Docker Compose
+# Environment variables — defaults are empty; set real values in docker-compose.yml
 # bot
 ENV token=
 ENV key=
@@ -34,4 +34,4 @@ ENV author_name=
 
 COPY . /app
 
-CMD [ "python", "./bot.py" ]
+CMD ["python", "bot.py"]

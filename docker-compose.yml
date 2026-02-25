@@ -1,4 +1,3 @@
-version: "3.1"
 services:
   verificationbot:
     build:
@@ -19,14 +18,14 @@ services:
       - moderator_email=
       # The sample username given by vhelp. Will also be blacklisted.
       - sample=accountid
-      # The email domain checked against (i.e. Gmail would be gmail.com).
-      - domain=gmail.com
+      # The email domain(s) to accept. Supports comma-separated values for multi-domain (e.g. "email.franklin.edu, franklin.edu").
+      - domain=email.franklin.edu,franklin.edu
       # The email account used by the bot to send emails.
-      - from=
+      - from=fr4nkl1n.v3r1f1c4t10n.b0t@gmail.com
       # The password for the email account. Required to login.
       - password=
       # The subject of the emails being sent by the bot.
-      - subject=Verification
+      - subject=Franklin ACM Clubs Verification Code
       # The SMTP server emails are sent from. The Gmail one is provided.
       - server=smtp.gmail.com
       # The port of the SMTP server above. The Gmail one is provided.
@@ -34,16 +33,18 @@ services:
       # The link to access the email inboxes (ex: exchange, gsuite, etc.).
       - webmail_link=
       # The role given to members who successfully verify.
-      - server_role=
+      - server_role=Goober
       # The channel id for the verification channel.
-      - channel_id=
+      - channel_id=1468816182365651067
       # The channel id for a channel for bot alerts (i.e. mod-only)
-      - notify_id=
+      - notify_id=1476226143760945237
       # The user id for a user to ping if an email is already used
       - admin_id=
       # The name sent addressing the person in the email
       - author_name=
       # The channel id for a channel for tickets, if you would like to mention a channel instead of a user for reverification
       - ticket_id=
+      # Token TTL in minutes — how long a verification token remains valid (default: 15)
+      - TOKEN_TTL_MINUTES=15
     volumes:
       - ./data:/app/data
